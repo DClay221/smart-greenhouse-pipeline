@@ -1,0 +1,23 @@
+# Certificates and keys — NEVER commit these
+certs/
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+greenhouse-env/
+
+# AWS credentials
+.aws/
+
+# Docker volumes
+grafana-storage/
+
+# Mac system files
+.DS_Store
+
+# Logs
+*.log
