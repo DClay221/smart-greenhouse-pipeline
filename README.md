@@ -151,7 +151,6 @@ credentials to view the live sensor dashboard.
 
 ##  Planned Enhancements
 
-- **Phase 6** — Actuation simulation layer with per-device state management
 - **Phase 7** — OpenWeather API integration for proactive climate control
 - **Phase 8** — AWS Kinesis Data Streams (pending account activation)
 - **Phase 9** — InfluxDB time-series database integration
@@ -184,3 +183,12 @@ smart-greenhouse-pipeline/
 
 *Built as a Data Engineering portfolio project demonstrating IoT ingestion,
 real-time stream processing, cloud storage, and live visualization.*
+
+## Known Development Environment Limitations
+
+- **Grafana tab throttling** - Browsers throttle or pause JavaScript timers on inactive tabs to conserve resources. As a result, Grafana's auto-refresh will pause when you switch to another tab and resume when you return. In a production environment Grafana would run on a dedicated server where this is not a concern.
+
+- **S3 API latency** The sensor API fetches live data directly from Amazon S3 on every request, which introduces 10-15 seconds of latency per poll. This will be resolved in Phase 9 when InfluxDB is introduced as a local time-series cache layer.
+
+- **Single greenhouse simulation** The current pipeline simulates one Raspberry Pi device. Multi-greenhouse scaling is architecturally supported via Kafka topic partitioning and namespaced MQTT topics but has not been implemented in this iteration.
+

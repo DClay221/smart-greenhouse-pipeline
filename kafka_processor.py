@@ -2,6 +2,7 @@ import json
 import time
 import logging
 import boto3
+from actuator_manager import ActuatorManager
 from collections import defaultdict
 from datetime import datetime, timezone
 from kafka import KafkaConsumer
@@ -33,7 +34,7 @@ ACTUATION_RESPONSES = {
 
 # ── State tracking for hysteresis and debouncing ──────────────
 consecutive_breaches = defaultdict(int)   # sensor -> breach count
-actuator_active_since = {}                # actuator -> activation timestamp
+actuator_manager = ActuatorManager()                # actuator -> activation timestamp
 
 def validate_reading(sensors: dict) -> bool:
     """Reject physically impossible sensor readings."""
@@ -72,25 +73,6 @@ def evaluate_sensors(sensors: dict) -> list:
                     "breach_count": consecutive_breaches[sensor_name]
                 })
     return responses
-
-def should_actuate(actuator: str) -> bool:
-    """Check hysteresis — respect minimum actuation duration."""
-    if actuator not in actuator_active_since:
-        return True
-    elapsed = time.time() - actuator_active_since[actuator]
-    if elapsed >= config.MIN_ACTUATION_DURATION:
-        return True
-    logger.info(
-        f"[HYSTERESIS] {actuator} — minimum duration not elapsed "
-        f"({elapsed:.0f}s / {config.MIN_ACTUATION_DURATION}s)"
-    )
-    return False
-
-def trigger_actuator(actuator: str, action: str):
-    """Trigger an actuator if hysteresis allows."""
-    if should_actuate(actuator):
-        actuator_active_since[actuator] = time.time()
-        logger.warning(f"[ACTUATOR] {actuator.upper()} activated — {action}")
 
 def build_alert_message(device_id: str, timestamp: str, responses: list) -> str:
     lines = [
@@ -153,21 +135,16 @@ def process_message(payload: dict):
     write_to_s3(payload, timestamp)
 
     responses = evaluate_sensors(sensors)
+    actuator_manager.evaluate(sensors, consecutive_breaches)
 
     if responses:
         logger.warning(
             f"⚠️  {len(responses)} alert(s) for {device_id}: "
             f"{[r['sensor'] for r in responses]}"
         )
-        for r in responses:
-            for actuator_name, actuator_cfg in config.ACTUATORS.items():
-                if (actuator_cfg["trigger"]    == r["sensor"] and
-                    actuator_cfg["condition"]  == r["status"]):
-                    trigger_actuator(actuator_name, r["action"])
-
         send_sns_alert(device_id, timestamp, responses)
     else:
-        logger.info(f"✅ All sensors nominal for {device_id}")
+        logger.info(f"All sensors nominal for {device_id}")
 
 def main():
     logger.info(f"Starting Kafka consumer on topic '{config.KAFKA_TOPIC}'...")

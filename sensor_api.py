@@ -6,6 +6,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime, timezone
 from botocore.exceptions import ClientError
 import config
+from botocore.config import Config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -13,7 +14,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-s3 = boto3.client("s3", region_name=config.AWS_REGION)
+s3 = boto3.client(
+    "s3",
+    region_name=config.AWS_REGION,
+    config=Config(
+        max_pool_connections=25
+    )
+)
 
 def get_latest_readings(n: int = 200) -> list:
     """Fetch the n most recent sensor readings from today's S3 prefix only."""
@@ -95,7 +102,24 @@ class SensorAPIHandler(BaseHTTPRequestHandler):
             self.send_header("Expires", "0")
             self.end_headers()
             self.wfile.write(response)
+        elif self.path == "/actuators":
+            try:
+                with open(config.ACTUATOR_STATE_FILE, "r") as f:
+                    actuator_list = json.load(f)
+            except FileNotFoundError:
+                actuator_list = []
+            except Exception as e:
+                logger.error(f"Failed to read actuator state: {e}")
+                actuator_list = []
 
+            response = json.dumps(actuator_list, indent=2).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.end_headers()
+            self.wfile.write(response)
+	    
         elif self.path == "/health":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -129,6 +153,7 @@ def main():
     logger.info(f"Starting threaded Sensor API server on port {config.API_PORT}...")
     logger.info(f"Sensors endpoint: http://localhost:{config.API_PORT}/sensors")
     logger.info(f"Health endpoint:  http://localhost:{config.API_PORT}/health")
+    logger.info(f"Actuators endpoint: http://localhost:{config.API_PORT}/actuators")
     server = ThreadedHTTPServer(("0.0.0.0", config.API_PORT), SensorAPIHandler)
     try:
         server.serve_forever()

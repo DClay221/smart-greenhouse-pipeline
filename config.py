@@ -83,3 +83,4 @@ ACTUATORS = {
     "ph_down":        {"trigger": "water_ph",      "condition": "HIGH"},
     "ph_up":          {"trigger": "water_ph",      "condition": "LOW"},
 }
+ACTUATOR_STATE_FILE = "/tmp/greenhouse_actuator_state.json"
