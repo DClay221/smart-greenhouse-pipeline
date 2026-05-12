@@ -9,6 +9,7 @@ __pycache__/
 *.pyo
 .env
 greenhouse-env/
+config.py
 
 # AWS credentials
 .aws/
@@ -21,3 +22,4 @@ grafana-storage/
 
 # Logs
 *.log
+

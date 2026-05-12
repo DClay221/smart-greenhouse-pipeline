@@ -120,6 +120,16 @@ def write_to_s3(payload: dict, timestamp: str):
         logger.info(f"Written to S3: s3://{config.S3_BUCKET}/{s3_key}")
     except ClientError as e:
         logger.error(f"Failed to write to S3: {e}", exc_info=True)
+def load_weather_state() -> dict:
+    """Load current weather state from file."""
+    try:
+        with open(config.WEATHER_STATE_FILE, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        logger.error(f"Failed to load weather state: {e}")
+        return {}
 
 def process_message(payload: dict):
     device_id = payload.get("device_id", "unknown")
@@ -134,6 +144,15 @@ def process_message(payload: dict):
 
     write_to_s3(payload, timestamp)
 
+    # ── Factor in weather proactive actions ───────────────────
+    weather = load_weather_state()
+    if weather:
+        proactive = weather.get("proactive_actions", [])
+        for action in proactive:
+            logger.info(
+                f"[WEATHER] {action['urgency']} proactive signal — "
+                f"{action['type']}: {action['reason']}"
+            )
     responses = evaluate_sensors(sensors)
     actuator_manager.evaluate(sensors, consecutive_breaches)
 
