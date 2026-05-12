@@ -141,6 +141,9 @@ python3 kafka_processor.py
 
 # Terminal 4 — Sensor API server
 python3 sensor_api.py
+
+# Terminal 5 - Weather Fetcher
+python3 weather_fetcher.py
 ```
 
 ### 6. Open Grafana
@@ -151,7 +154,6 @@ credentials to view the live sensor dashboard.
 
 ##  Planned Enhancements
 
-- **Phase 7** — OpenWeather API integration for proactive climate control
 - **Phase 8** — AWS Kinesis Data Streams (pending account activation)
 - **Phase 9** — InfluxDB time-series database integration
 - **Phase 10** — Predictive analytics using NOAA historical climate data
@@ -165,6 +167,7 @@ smart-greenhouse-pipeline/
 ├── mqtt_to_kafka_bridge.py    # IoT Core to Kafka message bridge
 ├── kafka_processor.py         # Stream processor with actuation logic
 ├── sensor_api.py              # REST API server for Grafana integration
+├── weather_fetcher.py         # Tiered weather forecasting and email briefings
 ├── kafka/
 │   └── docker-compose.yml     # Kafka, Zookeeper, and Grafana containers
 ├── .gitignore                 # Excludes certificates and credentials
