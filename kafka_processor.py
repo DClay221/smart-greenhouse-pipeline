@@ -1,6 +1,8 @@
 import json
 import time
 import logging
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS
 import boto3
 from actuator_manager import ActuatorManager
 from collections import defaultdict
@@ -18,6 +20,14 @@ logger = logging.getLogger(__name__)
 # ── AWS Clients ───────────────────────────────────────────────
 sns = boto3.client("sns", region_name=config.AWS_REGION)
 s3  = boto3.client("s3",  region_name=config.AWS_REGION)
+
+# ── InfluxDB Client ───────────────────────────────────────────
+influx_client = InfluxDBClient(
+    url=config.INFLUXDB_URL,
+    token=config.INFLUXDB_TOKEN,
+    org=config.INFLUXDB_ORG
+)
+influx_write_api = influx_client.write_api(write_options=SYNCHRONOUS)
 
 # ── Actuation responses ───────────────────────────────────────
 ACTUATION_RESPONSES = {
@@ -120,6 +130,55 @@ def write_to_s3(payload: dict, timestamp: str):
         logger.info(f"Written to S3: s3://{config.S3_BUCKET}/{s3_key}")
     except ClientError as e:
         logger.error(f"Failed to write to S3: {e}", exc_info=True)
+
+def write_to_influxdb(payload: dict, timestamp: str):
+    """Write sensor readings to InfluxDB time-series database."""
+    try:
+        device_id = payload.get("device_id", "unknown")
+        sensors   = payload.get("sensors",   {})
+
+        # Build a single point with all sensor values as fields
+        point = (
+            Point("sensor_readings")
+            .tag("device_id", device_id)
+            .tag("location",  config.LOCATION)
+        )
+
+        # Add each sensor as a field
+        sensor_map = {
+            "temperature":   ("temperature_celsius",  "temperature"),
+            "humidity":      ("humidity_percent",      "humidity"),
+            "co2":           ("co2_ppm",               "co2"),
+            "soil_moisture": ("soil_moisture_percent", "soil_moisture"),
+            "light":         ("light_lux",             "light"),
+            "water_ph":      ("water_ph",              "water_ph"),
+        }
+
+        for sensor_key, (field_name, _) in sensor_map.items():
+            value = sensors.get(sensor_key, {}).get("value")
+            if value is not None:
+                point = point.field(field_name, float(value))
+
+        # Add status fields for alerting context
+        for sensor_key, (_, status_key) in sensor_map.items():
+            status = sensors.get(sensor_key, {}).get("status", "OK")
+            point  = point.field(f"{status_key}_status", status)
+
+        # Use the payload timestamp
+        from datetime import timezone as tz
+        dt = datetime.fromisoformat(timestamp)
+        point = point.time(dt, "ns")
+
+        influx_write_api.write(
+            bucket=config.INFLUXDB_BUCKET,
+            org=config.INFLUXDB_ORG,
+            record=point
+        )
+        logger.info(f"Written to InfluxDB: {device_id} at {timestamp}")
+
+    except Exception as e:
+        logger.error(f"Failed to write to InfluxDB: {e}", exc_info=True)
+
 def load_weather_state() -> dict:
     """Load current weather state from file."""
     try:
@@ -143,6 +202,7 @@ def process_message(payload: dict):
     logger.info(f"Processing reading from {device_id} at {timestamp}")
 
     write_to_s3(payload, timestamp)
+    write_to_influxdb(payload, timestamp)
 
     # ── Factor in weather proactive actions ───────────────────
     weather = load_weather_state()

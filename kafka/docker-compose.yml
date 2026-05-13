@@ -27,6 +27,22 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_LOG_RETENTION_HOURS: 24
 
+  influxdb:
+    image: influxdb:2.7
+    container_name: greenhouse-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=greenhouse123
+      - DOCKER_INFLUXDB_INIT_ORG=greenhouse
+      - DOCKER_INFLUXDB_INIT_BUCKET=sensor_data
+      - DOCKER_INFLUXDB_INIT_RETENTION=52w
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=greenhouse-influx-token-2026
+    volumes:
+      - influxdb-storage:/var/lib/influxdb2
+
   grafana:
     image: grafana/grafana:10.2.0
     container_name: greenhouse-grafana
@@ -39,7 +55,9 @@ services:
     volumes:
       - grafana-storage:/var/lib/grafana
     depends_on:
+      - influxdb
       - kafka
 
 volumes:
   grafana-storage:
+  influxdb-storage:
