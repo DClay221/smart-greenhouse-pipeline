@@ -50,6 +50,7 @@ Grafana Dashboard
 | Visualization | Grafana 10.2 |
 | Infrastructure | Docker, Docker Compose |
 | Cloud Provider | AWS (Free Tier) |
+| Time-Series Database | InfluxDB 2.7 |
 
 ---
 
@@ -90,6 +91,10 @@ Grafana Dashboard
 6. **Visualize** — A lightweight Python API server reads the latest readings
    from S3 and serves them to a Grafana dashboard displaying six live
    time-series panels with threshold-based color coding.
+
+6a. **Time-Series Storage** — Every validated reading is simultaneously written
+    to InfluxDB, enabling millisecond-latency queries and live Grafana
+    dashboards without S3 polling overhead.
 
 ---
 
@@ -152,11 +157,12 @@ credentials to view the live sensor dashboard.
 
 ---
 
-##  Planned Enhancements
+## Planned Enhancements
 
-- **Phase 8** — AWS Kinesis Data Streams (pending account activation)
-- **Phase 9** — InfluxDB time-series database integration
+- **Phase 8** — AWS Kinesis Data Streams replacement for Kafka
+  (pending AWS account subscription activation)
 - **Phase 10** — Predictive analytics using NOAA historical climate data
+  combined with collected greenhouse sensor data and scikit-learn ML models
 
 ---
 
@@ -168,8 +174,10 @@ smart-greenhouse-pipeline/
 ├── kafka_processor.py         # Stream processor with actuation logic
 ├── sensor_api.py              # REST API server for Grafana integration
 ├── weather_fetcher.py         # Tiered weather forecasting and email briefings
+├── actuator_manager.py        # Device state management with hysteresis
 ├── kafka/
-│   └── docker-compose.yml     # Kafka, Zookeeper, and Grafana containers
+│   └── docker-compose.yml     # Kafka, Zookeeper, InfluxDB, and Grafana
+├── weather_fetcher.py         # Tiered weather forecasting and email briefings
 ├── .gitignore                 # Excludes certificates and credentials
 └── README.md                  # Project documentation
 
@@ -187,11 +195,33 @@ smart-greenhouse-pipeline/
 *Built as a Data Engineering portfolio project demonstrating IoT ingestion,
 real-time stream processing, cloud storage, and live visualization.*
 
-## Known Development Environment Limitations
+## ⚠️ Known Development Environment Limitations
 
-- **Grafana tab throttling** - Browsers throttle or pause JavaScript timers on inactive tabs to conserve resources. As a result, Grafana's auto-refresh will pause when you switch to another tab and resume when you return. In a production environment Grafana would run on a dedicated server where this is not a concern.
+- **Grafana tab throttling** — Browsers throttle or pause JavaScript timers
+  on inactive tabs to conserve resources. As a result, Grafana's auto-refresh
+  will pause when you switch to another tab and resume when you return.
+  In a production environment Grafana would run on a dedicated server where
+  this is not a concern.
 
-- **S3 API latency** The sensor API fetches live data directly from Amazon S3 on every request, which introduces 10-15 seconds of latency per poll. This will be resolved in Phase 9 when InfluxDB is introduced as a local time-series cache layer.
+- **S3 API latency** — The sensor API fetches live data directly from Amazon
+  S3 on every request for the legacy dashboard. This is resolved in the
+  InfluxDB dashboard which queries the local time-series database directly
+  with millisecond latency.
 
-- **Single greenhouse simulation** The current pipeline simulates one Raspberry Pi device. Multi-greenhouse scaling is architecturally supported via Kafka topic partitioning and namespaced MQTT topics but has not been implemented in this iteration.
+- **Single greenhouse simulation** — The current pipeline simulates one
+  Raspberry Pi device. Multi-greenhouse scaling is architecturally supported
+  via Kafka topic partitioning and namespaced MQTT topics but has not been
+  implemented in this iteration.
+
+- **AWS Kinesis unavailable** — Amazon Kinesis Data Streams requires a
+  subscription that is not available on new AWS accounts at the free tier
+  level. The project uses Apache Kafka running in Docker as a functionally
+  equivalent replacement. Kinesis integration is architecturally planned and
+  documented but pending AWS account activation. The skills demonstrated
+  (stream ingestion, partitioning, consumer groups) are directly transferable
+  to Kinesis.
+
+- **Amazon Timestream unavailable** — Timestream for LiveAnalytics closed
+  access to new customers effective June 20 2025. InfluxDB running in Docker
+  serves as the time-series database layer with equivalent functionality.
 
