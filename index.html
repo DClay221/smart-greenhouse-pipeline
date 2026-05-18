@@ -555,6 +555,7 @@
         <li><a href="#stack">Stack</a></li>
         <li><a href="#phases">Phases</a></li>
         <li><a href="#challenges">Challenges</a></li>
+        <li><a href="#dashboard">Dashboard</a></li>
     </ul>
 </nav>
 
@@ -1125,6 +1126,32 @@
 </div>
 </div>
 
+
+<!-- ── Dashboard Screenshot ─────────────────────────────────── -->
+<div class="section-wrapper" id="dashboard">
+<div class="section">
+    <div class="section-label">Live Dashboard</div>
+    <h2>Grafana Visualization</h2>
+    <p class="lead">
+        Real-time sensor data visualized in Grafana via native Flux queries
+        to InfluxDB, delivering millisecond-latency updates across twelve
+        panels.
+    </p>
+    <div style="border: 1px solid var(--gray-200); border-radius: 6px;
+                overflow: hidden; margin-top: 32px;">
+        <img src="dashboard-screenshot.png"
+             alt="Grafana dashboard displaying simulated greenhouse sensor data"
+             style="width: 100%; display: block;">
+    </div>
+    <p style="font-size: 0.78rem; color: var(--gray-500); margin-top: 12px;
+              font-family: 'DM Mono', monospace; letter-spacing: 0.03em;">
+        Grafana dashboard displaying simulated sensor data. In production,
+        physical sensors would replace the simulator with no changes required
+        to the downstream pipeline. Sensor readings use a drift algorithm
+        introducing realistic gradual change within physically plausible bounds.
+    </p>
+</div>
+</div>
 <!-- ── Footer ───────────────────────────────────────────────── -->
 <footer>
     <div class="footer-name">Devyn Claybrooks</div>
