@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Greenhouse IoT Pipeline — Devyn Claybrooks</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green-900: #0f2d1f;
+            --green-800: #1b4332;
+            --green-700: #2d6a4f;
+            --green-500: #40916c;
+            --green-300: #74c69d;
+            --green-100: #d8f3dc;
+            --cream:     #faf9f6;
+            --gray-100:  #f4f4f2;
+            --gray-200:  #e8e8e4;
+            --gray-500:  #888882;
+            --gray-700:  #444440;
+            --gray-900:  #1a1a18;
+            --accent:    #b5833a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--cream);
+            color: var(--gray-900);
+            line-height: 1.65;
+            font-weight: 300;
+        }
+
+        /* ── Nav ──────────────────────────────────────────── */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(15, 45, 31, 0.96);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 48px;
+            height: 60px;
+        }
+
+        .nav-logo {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--green-300);
+            letter-spacing: 0.05em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--green-300); }
+
+        /* ── Hero ─────────────────────────────────────────── */
+        .hero {
+            min-height: 100vh;
+            background: var(--green-900);
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            padding: 120px 48px 80px;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 60% 50% at 80% 50%, rgba(45,106,79,0.3) 0%, transparent 70%),
+                radial-gradient(ellipse 40% 60% at 20% 80%, rgba(64,145,108,0.15) 0%, transparent 60%);
+        }
+
+        .hero-grid {
+            position: relative;
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .hero-label {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--green-300);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 3.8rem;
+            color: white;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            font-weight: 400;
+        }
+
+        .hero h1 span {
+            color: var(--green-300);
+        }
+
+        .hero-desc {
+            color: rgba(255,255,255,0.65);
+            font-size: 1.05rem;
+            line-height: 1.7;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 11px 24px;
+            border-radius: 4px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            text-decoration: none;
+            letter-spacing: 0.02em;
+            transition: all 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--green-500);
+            color: white;
+            border: 1px solid var(--green-500);
+        }
+
+        .btn-primary:hover {
+            background: var(--green-300);
+            border-color: var(--green-300);
+            color: var(--green-900);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .btn-outline:hover {
+            border-color: rgba(255,255,255,0.6);
+            color: white;
+        }
+
+        /* Hero right — stats panel */
+        .hero-stats {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 32px;
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+
+        .stat-row:last-child { border-bottom: none; }
+
+        .stat-label {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 0.9rem;
+            color: var(--green-300);
+            font-weight: 500;
+        }
+
+        /* ── Sections ─────────────────────────────────────── */
+        .section {
+            padding: 96px 48px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section-wrapper { }
+        .section-wrapper.alt { background: var(--gray-100); }
+
+        .section-label {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--green-500);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        h2 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2.2rem;
+            color: var(--green-800);
+            font-weight: 400;
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        .lead {
+            font-size: 1.05rem;
+            color: var(--gray-700);
+            max-width: 680px;
+            margin-bottom: 48px;
+            line-height: 1.75;
+        }
+
+        /* ── Architecture flow ────────────────────────────── */
+        .arch-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin-top: 40px;
+        }
+
+        .arch-row {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 32px;
+            align-items: start;
+            padding: 24px 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .arch-row:last-child { border-bottom: none; }
+
+        .arch-layer {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--green-500);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding-top: 2px;
+        }
+
+        .arch-detail h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .arch-detail p {
+            font-size: 0.88rem;
+            color: var(--gray-500);
+            line-height: 1.6;
+        }
+
+        .arch-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .tag {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.68rem;
+            background: var(--green-100);
+            color: var(--green-800);
+            padding: 2px 8px;
+            border-radius: 2px;
+            letter-spacing: 0.03em;
+        }
+
+        /* ── Sensor table ─────────────────────────────────── */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 32px;
+            font-size: 0.88rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 10px 16px;
+            background: var(--green-800);
+            color: white;
+            font-weight: 500;
+            font-size: 0.78rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .data-table th:first-child { border-radius: 4px 0 0 0; }
+        .data-table th:last-child  { border-radius: 0 4px 0 0; }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .data-table tr:nth-child(even) td { background: var(--gray-100); }
+        .data-table tr:last-child td { border-bottom: none; }
+
+        .data-table td:first-child {
+            font-weight: 500;
+            color: var(--gray-900);
+        }
+
+        .mono {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--green-700);
+        }
+
+        /* ── Tech grid ────────────────────────────────────── */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1px;
+            background: var(--gray-200);
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 40px;
+        }
+
+        .tech-cell {
+            background: white;
+            padding: 20px 24px;
+        }
+
+        .tech-cell .layer {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--green-500);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .tech-cell .name {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--gray-900);
+        }
+
+        /* ── Phase list ───────────────────────────────────── */
+        .phase-list {
+            list-style: none;
+            margin-top: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .phase-item {
+            display: grid;
+            grid-template-columns: 48px 1fr;
+            gap: 24px;
+            padding: 28px 0;
+            border-bottom: 1px solid var(--gray-200);
+            align-items: start;
+        }
+
+        .phase-item:last-child { border-bottom: none; }
+
+        .phase-num {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--green-800);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 500;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .phase-num.pending {
+            background: transparent;
+            border: 1px solid var(--gray-200);
+            color: var(--gray-500);
+        }
+
+        .phase-body h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 6px;
+        }
+
+        .phase-body p {
+            font-size: 0.88rem;
+            color: var(--gray-500);
+            line-height: 1.65;
+        }
+
+        .phase-status {
+            display: inline-block;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 2px;
+            margin-bottom: 8px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .status-complete {
+            background: var(--green-100);
+            color: var(--green-800);
+        }
+
+        .status-pending {
+            background: var(--gray-200);
+            color: var(--gray-500);
+        }
+
+        /* ── Challenge cards ──────────────────────────────── */
+        .challenge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .challenge-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            padding: 28px;
+            position: relative;
+        }
+
+        .challenge-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--green-500);
+            border-radius: 6px 6px 0 0;
+        }
+
+        .challenge-card h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 10px;
+        }
+
+        .challenge-card p {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            line-height: 1.7;
+        }
+
+        /* ── Footer ───────────────────────────────────────── */
+        footer {
+            background: var(--green-900);
+            padding: 48px;
+            text-align: center;
+        }
+
+        .footer-name {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.4rem;
+            color: white;
+            font-weight: 400;
+            margin-bottom: 6px;
+        }
+
+        .footer-title {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.45);
+            margin-bottom: 24px;
+            letter-spacing: 0.02em;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+        }
+
+        .footer-links a {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--green-300);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            transition: opacity 0.2s;
+        }
+
+        .footer-links a:hover { opacity: 0.7; }
+
+        /* ── Responsive ───────────────────────────────────── */
+        @media (max-width: 768px) {
+            nav { padding: 0 24px; }
+            .nav-links { display: none; }
+            .hero { padding: 100px 24px 64px; }
+            .hero-grid { grid-template-columns: 1fr; gap: 48px; }
+            .hero h1 { font-size: 2.6rem; }
+            .hero-stats { display: none; }
+            .section { padding: 64px 24px; }
+            .arch-row { grid-template-columns: 1fr; gap: 8px; }
+            footer { padding: 48px 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Nav ─────────────────────────────────────────────────── -->
+<nav>
+    <div class="nav-logo">smart-greenhouse-pipeline</div>
+    <ul class="nav-links">
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#sensors">Sensors</a></li>
+        <li><a href="#stack">Stack</a></li>
+        <li><a href="#phases">Phases</a></li>
+        <li><a href="#challenges">Challenges</a></li>
+    </ul>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────── -->
+<section class="hero">
+    <div class="hero-grid">
+        <div>
+            <div class="hero-label">Data Engineering Portfolio Project</div>
+            <h1>Smart<br><span>Greenhouse</span><br>Pipeline</h1>
+            <p class="hero-desc">
+                A production-style IoT data engineering pipeline built on a
+                Raspberry Pi edge device, Apache Kafka, AWS IoT Core, InfluxDB,
+                and Grafana — simulating a fully automated greenhouse
+                monitoring and control system.
+            </p>
+            <div class="hero-buttons">
+                <a href="https://github.com/devynclaybrooks/smart-greenhouse-pipeline"
+                   class="btn btn-primary">View on GitHub</a>
+                <a href="#architecture" class="btn btn-outline">Explore Architecture</a>
+            </div>
+        </div>
+
+        <div class="hero-stats">
+            <div class="stat-row">
+                <span class="stat-label">Edge Device</span>
+                <span class="stat-value">Raspberry Pi 4</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Sensors Monitored</span>
+                <span class="stat-value">6 Environmental Metrics</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Publish Interval</span>
+                <span class="stat-value">15 Seconds</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Stream Processor</span>
+                <span class="stat-value">Apache Kafka</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Storage Layers</span>
+                <span class="stat-value">Amazon S3 + InfluxDB</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Actuators Managed</span>
+                <span class="stat-value">9 Greenhouse Devices</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Weather Integration</span>
+                <span class="stat-value">OpenWeather API</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Alert Channels</span>
+                <span class="stat-value">Amazon SNS + Gmail SMTP</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Overview ────────────────────────────────────────────── -->
+<div class="section-wrapper" id="overview">
+<div class="section">
+    <div class="section-label">Project Overview</div>
+    <h2>End-to-end IoT data<br>engineering in production style</h2>
+    <p class="lead">
+        The Smart Greenhouse Pipeline demonstrates the full modern data
+        engineering stack — from edge device ingestion through real-time
+        stream processing, dual-layer cloud storage, intelligent actuation
+        logic, and live visualization.
+    </p>
+    <p style="color: var(--gray-700); max-width: 680px; line-height: 1.75; font-size: 0.95rem;">
+        A Raspberry Pi acts as the edge device, publishing six environmental
+        sensor readings every 15 seconds via secured MQTT to AWS IoT Core.
+        An MQTT-Kafka bridge forwards each message into Apache Kafka, where
+        a Python consumer applies threshold evaluation, hysteresis-controlled
+        actuation logic, and data quality validation before writing to both
+        Amazon S3 and InfluxDB simultaneously. A Grafana dashboard powered
+        by native Flux queries provides millisecond-latency live visualization.
+        An OpenWeather API integration delivers tiered proactive briefing
+        emails twice daily, distinguishing between today's operational window
+        and the overnight period through a three-level urgency system.
+    </p>
+</div>
+</div>
+
+<!-- ── Architecture ────────────────────────────────────────── -->
+<div class="section-wrapper alt" id="architecture">
+<div class="section">
+    <div class="section-label">System Design</div>
+    <h2>Pipeline Architecture</h2>
+    <p class="lead">
+        A Lambda-style architecture runs real-time and batch storage layers
+        in parallel, ensuring both low-latency querying and permanent
+        archival without compromise.
+    </p>
+
+    <div class="arch-flow">
+        <div class="arch-row">
+            <div class="arch-layer">Edge</div>
+            <div class="arch-detail">
+                <h4>Raspberry Pi — Sensor Simulation</h4>
+                <p>Python script generates realistic sensor readings with gradual
+                   drift behavior, validates against physically possible ranges,
+                   and publishes to AWS IoT Core every 15 seconds via MQTT with
+                   mutual TLS certificate authentication.</p>
+                <div class="arch-tags">
+                    <span class="tag">Python 3.12</span>
+                    <span class="tag">AWS IoT SDK</span>
+                    <span class="tag">MQTT</span>
+                    <span class="tag">TLS Certificates</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="arch-row">
+            <div class="arch-layer">Ingestion</div>
+            <div class="arch-detail">
+                <h4>AWS IoT Core — Managed MQTT Broker</h4>
+                <p>Receives and routes secured MQTT messages from registered
+                   IoT Things. An MQTT-Kafka bridge script subscribes to the
+                   sensor topic and forwards each message into the local
+                   Kafka cluster with full acknowledgement.</p>
+                <div class="arch-tags">
+                    <span class="tag">AWS IoT Core</span>
+                    <span class="tag">IoT Policy</span>
+                    <span class="tag">Thing Registry</span>
+                    <span class="tag">QoS AT_LEAST_ONCE</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="arch-row">
+            <div class="arch-layer">Streaming</div>
+            <div class="arch-detail">
+                <h4>Apache Kafka — Stream Processing</h4>
+                <p>Three-partition Kafka topic ingests sensor payloads. A Python
+                   consumer group evaluates thresholds with consecutive breach
+                   counting, triggers hysteresis-controlled actuator responses,
+                   and writes to both storage layers before processing alerts.</p>
+                <div class="arch-tags">
+                    <span class="tag">Apache Kafka</span>
+                    <span class="tag">kafka-python</span>
+                    <span class="tag">Docker</span>
+                    <span class="tag">Consumer Groups</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="arch-row">
+            <div class="arch-layer">Storage</div>
+            <div class="arch-detail">
+                <h4>Dual-Layer Storage — S3 + InfluxDB</h4>
+                <p>Every validated reading is written simultaneously to Amazon S3
+                   as a date-partitioned JSON file (permanent raw archive) and to
+                   InfluxDB as a tagged time-series point (millisecond-latency
+                   queries). Actuation events are logged to a separate S3 prefix
+                   for full audit trail.</p>
+                <div class="arch-tags">
+                    <span class="tag">Amazon S3</span>
+                    <span class="tag">InfluxDB 2.7</span>
+                    <span class="tag">Flux Query Language</span>
+                    <span class="tag">Date Partitioning</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="arch-row">
+            <div class="arch-layer">Actuation</div>
+            <div class="arch-detail">
+                <h4>ActuatorManager — Device Control Layer</h4>
+                <p>Manages nine simulated greenhouse devices with per-device
+                   minimum run times, hysteresis enforcement, and shared state
+                   written to disk on every evaluation cycle for consumption
+                   by the API server.</p>
+                <div class="arch-tags">
+                    <span class="tag">Hysteresis Control</span>
+                    <span class="tag">Minimum Run Times</span>
+                    <span class="tag">State Persistence</span>
+                    <span class="tag">S3 Audit Logging</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="arch-row">
+            <div class="arch-layer">Alerting</div>
+            <div class="arch-detail">
+                <h4>Amazon SNS + Gmail SMTP — Dual Alert Channels</h4>
+                <p>Amazon SNS handles real-time threshold breach notifications
+                   with debouncing to prevent alert fatigue. Gmail SMTP delivers
+                   rich HTML briefing emails at 7 AM and 7 PM with tiered
+                   forecast windows and urgency-scored proactive recommendations.</p>
+                <div class="arch-tags">
+                    <span class="tag">Amazon SNS</span>
+                    <span class="tag">Gmail SMTP</span>
+                    <span class="tag">Alert Debouncing</span>
+                    <span class="tag">HTML Email</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="arch-row">
+            <div class="arch-layer">Visualization</div>
+            <div class="arch-detail">
+                <h4>Grafana — Live Dashboard</h4>
+                <p>Native InfluxDB data source with Flux queries provides
+                   millisecond-latency updates across twelve panels — six
+                   time-series trend panels and six current-value stat panels —
+                   plus an actuator status table showing real-time device states.</p>
+                <div class="arch-tags">
+                    <span class="tag">Grafana 10.2</span>
+                    <span class="tag">Flux Queries</span>
+                    <span class="tag">Threshold Coloring</span>
+                    <span class="tag">Docker</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="arch-row">
+            <div class="arch-layer">Weather</div>
+            <div class="arch-detail">
+                <h4>OpenWeather API — Proactive Intelligence</h4>
+                <p>Polls current conditions and 48-hour forecast every 10 minutes.
+                   Splits forecast into two operational windows with three urgency
+                   levels: Routine, Advisory, and Urgent. Urgent conditions trigger
+                   immediate alerts independent of the briefing schedule.</p>
+                <div class="arch-tags">
+                    <span class="tag">OpenWeather API</span>
+                    <span class="tag">Tiered Windows</span>
+                    <span class="tag">Urgency Scoring</span>
+                    <span class="tag">Proactive Actuation</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ── Sensors ──────────────────────────────────────────────── -->
+<div class="section-wrapper" id="sensors">
+<div class="section">
+    <div class="section-label">Environmental Monitoring</div>
+    <h2>Simulated Sensor Suite</h2>
+    <p class="lead">
+        Six greenhouse environmental metrics are simulated with realistic
+        gradual drift behavior and validated against physically possible
+        ranges before entering the processing pipeline.
+    </p>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Sensor</th>
+                <th>Unit</th>
+                <th>Low Threshold</th>
+                <th>High Threshold</th>
+                <th>Actuator Response</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Temperature</td>
+                <td class="mono">Celsius</td>
+                <td class="mono">&lt; 18°C</td>
+                <td class="mono">&gt; 30°C</td>
+                <td>Heating System / Cooling Fan</td>
+            </tr>
+            <tr>
+                <td>Humidity</td>
+                <td class="mono">Percent</td>
+                <td class="mono">&lt; 40%</td>
+                <td class="mono">&gt; 80%</td>
+                <td>Humidifier / Dehumidifier</td>
+            </tr>
+            <tr>
+                <td>CO2 Level</td>
+                <td class="mono">PPM</td>
+                <td class="mono">—</td>
+                <td class="mono">&gt; 1500 ppm</td>
+                <td>Ventilation Fans</td>
+            </tr>
+            <tr>
+                <td>Soil Moisture</td>
+                <td class="mono">Percent</td>
+                <td class="mono">&lt; 20%</td>
+                <td class="mono">—</td>
+                <td>Irrigation Pump</td>
+            </tr>
+            <tr>
+                <td>Light Intensity</td>
+                <td class="mono">Lux</td>
+                <td class="mono">&lt; 200 lux</td>
+                <td class="mono">—</td>
+                <td>Grow Lights</td>
+            </tr>
+            <tr>
+                <td>Water pH</td>
+                <td class="mono">pH</td>
+                <td class="mono">&lt; 5.5 pH</td>
+                <td class="mono">&gt; 7.0 pH</td>
+                <td>pH Up Pump / pH Down Pump</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+</div>
+
+<!-- ── Tech Stack ───────────────────────────────────────────── -->
+<div class="section-wrapper alt" id="stack">
+<div class="section">
+    <div class="section-label">Technology</div>
+    <h2>Full Stack</h2>
+    <p class="lead">
+        Every technology in this project was chosen deliberately to reflect
+        what is used in production Data Engineering environments.
+    </p>
+
+    <div class="tech-grid">
+        <div class="tech-cell">
+            <div class="layer">Edge Device</div>
+            <div class="name">Raspberry Pi 4</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Language</div>
+            <div class="name">Python 3.12</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">IoT Protocol</div>
+            <div class="name">MQTT over TLS</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">IoT Broker</div>
+            <div class="name">AWS IoT Core</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Stream Processing</div>
+            <div class="name">Apache Kafka</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Data Lake</div>
+            <div class="name">Amazon S3</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Time-Series DB</div>
+            <div class="name">InfluxDB 2.7</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Query Language</div>
+            <div class="name">Flux</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Alerting</div>
+            <div class="name">Amazon SNS</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Visualization</div>
+            <div class="name">Grafana 10.2</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Infrastructure</div>
+            <div class="name">Docker</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Cloud</div>
+            <div class="name">AWS (Free Tier)</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Weather</div>
+            <div class="name">OpenWeather API</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Email</div>
+            <div class="name">Gmail SMTP</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">Version Control</div>
+            <div class="name">Git / GitHub</div>
+        </div>
+        <div class="tech-cell">
+            <div class="layer">OS — Edge</div>
+            <div class="name">Raspbian (Debian)</div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ── Build Phases ─────────────────────────────────────────── -->
+<div class="section-wrapper" id="phases">
+<div class="section">
+    <div class="section-label">Development</div>
+    <h2>Build Phases</h2>
+    <p class="lead">
+        The project was built incrementally across ten planned phases,
+        each adding a distinct layer of production-grade capability.
+    </p>
+
+    <ul class="phase-list">
+        <li class="phase-item">
+            <div class="phase-num">1</div>
+            <div class="phase-body">
+                <div class="phase-status status-complete">Complete</div>
+                <h4>Ingest — Sensor Simulator and AWS IoT Core</h4>
+                <p>Python sensor simulation on Raspberry Pi publishing six
+                   environmental metrics every 15 seconds via secured MQTT
+                   with mutual TLS certificate authentication to AWS IoT Core.</p>
+            </div>
+        </li>
+        <li class="phase-item">
+            <div class="phase-num">2</div>
+            <div class="phase-body">
+                <div class="phase-status status-complete">Complete</div>
+                <h4>Stream — Apache Kafka and Real-Time Alerting</h4>
+                <p>MQTT-Kafka bridge forwards messages into a local Kafka topic.
+                   Python consumer evaluates thresholds with consecutive breach
+                   counting, debouncing, and Amazon SNS email alerts.</p>
+            </div>
+        </li>
+        <li class="phase-item">
+            <div class="phase-num">3</div>
+            <div class="phase-body">
+                <div class="phase-status status-complete">Complete</div>
+                <h4>Store — Amazon S3 Data Lake</h4>
+                <p>Every validated sensor reading written to S3 as a
+                   date-partitioned JSON file, forming a permanent queryable
+                   raw data archive for long-term storage and future analytics.</p>
+            </div>
+        </li>
+        <li class="phase-item">
+            <div class="phase-num">4</div>
+            <div class="phase-body">
+                <div class="phase-status status-complete">Complete</div>
+                <h4>Visualize — Grafana Dashboard</h4>
+                <p>Initial live sensor dashboard built with Grafana and the
+                   Infinity plugin, served via a Python REST API reading from S3.
+                   Later superseded by the InfluxDB-native dashboard in Phase 9.</p>
+            </div>
+        </li>
+        <li class="phase-item">
+            <div class="phase-num">5</div>
+            <div class="phase-body">
+                <div class="phase-status status-complete">Complete</div>
+                <h4>Hardening — Production Readiness</h4>
+                <p>Centralized configuration module, data quality validation,
+                   exponential backoff reconnection logic, alert debouncing,
+                   hysteresis controls, and GitHub repository setup with
+                   proper credential exclusion.</p>
+            </div>
+        </li>
+        <li class="phase-item">
+            <div class="phase-num">6</div>
+            <div class="phase-body">
+                <div class="phase-status status-complete">Complete</div>
+                <h4>Actuation — Device Simulation Layer</h4>
+                <p>ActuatorManager controls nine simulated greenhouse devices
+                   with configurable minimum run times, hysteresis enforcement,
+                   real-time state sharing between processes, and full actuation
+                   event logging to S3 for audit trail.</p>
+            </div>
+        </li>
+        <li class="phase-item">
+            <div class="phase-num">7</div>
+            <div class="phase-body">
+                <div class="phase-status status-complete">Complete</div>
+                <h4>Weather — OpenWeather API Integration</h4>
+                <p>Tiered forecast windows split into Today and Tonight/Tomorrow AM
+                   operational periods with three-level urgency scoring. Scheduled
+                   HTML briefing emails at 7 AM and 7 PM via Gmail SMTP. Urgent
+                   conditions trigger immediate alerts independent of the schedule.</p>
+            </div>
+        </li>
+        <li class="phase-item">
+            <div class="phase-num">9</div>
+            <div class="phase-body">
+                <div class="phase-status status-complete">Complete</div>
+                <h4>Time-Series — InfluxDB Integration</h4>
+                <p>InfluxDB 2.7 added to Docker Compose alongside Kafka and Grafana.
+                   Kafka processor writes to InfluxDB in real time alongside S3.
+                   Grafana dashboard migrated to native Flux queries with
+                   millisecond latency, replacing S3 polling overhead.</p>
+            </div>
+        </li>
+        <li class="phase-item">
+            <div class="phase-num pending">8</div>
+            <div class="phase-body">
+                <div class="phase-status status-pending">Pending</div>
+                <h4>AWS Kinesis — Cloud-Native Stream Processing</h4>
+                <p>Kinesis Data Streams planned as a cloud-native replacement for
+                   Apache Kafka. Currently unavailable on this AWS account tier.
+                   Architecture is fully documented and ready for implementation
+                   when account activation is resolved.</p>
+            </div>
+        </li>
+        <li class="phase-item">
+            <div class="phase-num pending">10</div>
+            <div class="phase-body">
+                <div class="phase-status status-pending">Planned</div>
+                <h4>Predictive Analytics — NOAA Data and scikit-learn</h4>
+                <p>ML pipeline using NOAA historical climate data combined with
+                   collected greenhouse sensor readings to train a scikit-learn
+                   model predicting indoor conditions from outdoor weather
+                   forecasts. Planned for implementation as sensor data accumulates.</p>
+            </div>
+        </li>
+    </ul>
+</div>
+</div>
+
+<!-- ── Challenges ───────────────────────────────────────────── -->
+<div class="section-wrapper alt" id="challenges">
+<div class="section">
+    <div class="section-label">Engineering Decisions</div>
+    <h2>Challenges and Solutions</h2>
+    <p class="lead">
+        Real engineering problems encountered and solved during development.
+        These represent the practical reality of building production-style
+        systems rather than tutorial projects.
+    </p>
+
+    <div class="challenge-grid">
+        <div class="challenge-card">
+            <h4>S3 Pagination Performance</h4>
+            <p>The sensor API hung for 18 minutes because list_objects_v2
+               with MaxKeys scanned from the bucket root alphabetically,
+               returning the earliest files rather than the most recent.
+               Fixed by constructing date-prefixed S3 paths to scope every
+               query to today's partition only.</p>
+        </div>
+        <div class="challenge-card">
+            <h4>Inter-Process State Sharing</h4>
+            <p>The Kafka processor and API server are separate processes
+               with independent ActuatorManager instances. Grafana displayed
+               stale actuator states because the API's instance was never
+               updated. Solved by writing state to a shared JSON file on
+               every evaluation cycle.</p>
+        </div>
+        <div class="challenge-card">
+            <h4>SNS Free Tier Exhaustion</h4>
+            <p>Five-second sensor intervals triggered an alert on every
+               threshold breach, exhausting 1,000 monthly SNS notifications
+               within days. Solved with consecutive breach counting — alerts
+               only fire after three sustained readings — and a reading
+               interval increase to 15 seconds.</p>
+        </div>
+        <div class="challenge-card">
+            <h4>AWS Service Restrictions</h4>
+            <p>Kinesis Data Streams and Timestream for LiveAnalytics were
+               unavailable on a new AWS account. Replaced with Apache Kafka
+               in Docker and InfluxDB respectively — both industry-standard
+               tools with skills that transfer directly to their AWS
+               counterparts.</p>
+        </div>
+        <div class="challenge-card">
+            <h4>Weather Forecast Window Accuracy</h4>
+            <p>OpenWeather forecast intervals extending into the next day
+               caused false proactive alerts on clear days. Solved with a
+               tiered window system splitting forecasts into distinct Today
+               and Tonight/Tomorrow AM operational periods with independent
+               evaluation.</p>
+        </div>
+        <div class="challenge-card">
+            <h4>Actuator Hysteresis Design</h4>
+            <p>Sensors drifting near thresholds caused actuators to cycle
+               on and off rapidly — a realistic problem in real greenhouse
+               and HVAC systems. Implemented minimum run time enforcement
+               per device and consecutive breach counting before any
+               actuation is permitted.</p>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ── Footer ───────────────────────────────────────────────── -->
+<footer>
+    <div class="footer-name">Devyn Claybrooks</div>
+    <div class="footer-title">Aspiring Data Engineer</div>
+    <div class="footer-links">
+        <a href="https://github.com/devynclaybrooks/smart-greenhouse-pipeline">
+            Repository
+        </a>
+        <a href="https://github.com/devynclaybrooks">
+            GitHub Profile
+        </a>
+    </div>
+</footer>
+
+</body>
+</html>
