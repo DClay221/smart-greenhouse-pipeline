@@ -181,6 +181,36 @@ smart-greenhouse-pipeline/
 ├── .gitignore                 # Excludes certificates and credentials
 └── README.md                  # Project documentation
 
+
+---
+
+## ️ Autonomous Deployment
+
+The pipeline is deployed as a set of systemd services on a Raspberry Pi 5
+running 24/7, requiring no manual intervention after initial setup.
+
+### Service Architecture
+
+| Service | Description | Auto-restart |
+|---|---|---|
+| `greenhouse-docker` | Starts Kafka, InfluxDB, and Grafana containers | Yes |
+| `greenhouse-simulator` | Publishes sensor readings every 15 seconds | Yes |
+| `greenhouse-bridge` | Forwards MQTT messages to Kafka | Yes |
+| `greenhouse-processor` | Processes stream, writes to S3 and InfluxDB | Yes |
+| `greenhouse-api` | Serves sensor data REST API | Yes |
+| `greenhouse-weather` | Fetches weather and sends briefing emails | Yes |
+
+All services are configured to start automatically on boot and restart
+on failure using systemd. The pipeline collects and processes data
+continuously regardless of whether any other device is active.
+
+### Accessing the Dashboard
+
+With the pipeline running on the Pi, Grafana and InfluxDB are accessible
+from any device on the local network:
+
+- **Grafana:** `http://<pi-ip>:3000`
+- **InfluxDB:** `http://<pi-ip>:8086`
 ---
 
 ##  Security Notes
@@ -195,7 +225,7 @@ smart-greenhouse-pipeline/
 *Built as a Data Engineering portfolio project demonstrating IoT ingestion,
 real-time stream processing, cloud storage, and live visualization.*
 
-## ⚠️ Known Development Environment Limitations
+## ️ Known Development Environment Limitations
 
 - **Grafana tab throttling** — Browsers throttle or pause JavaScript timers
   on inactive tabs to conserve resources. As a result, Grafana's auto-refresh
