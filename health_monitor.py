@@ -77,27 +77,20 @@ def check_s3_freshness() -> tuple:
         today = datetime.now(timezone.utc).strftime("%Y/%m/%d")
         prefix = f"{config.S3_PREFIX}/{today}/"
 
-        response = s3.list_objects_v2(
-            Bucket=config.S3_BUCKET,
-            Prefix=prefix,
-            MaxKeys=1
-        )
+        paginator = s3.get_paginator("list_objects_v2")
+        latest_obj = None
 
-        objects = response.get("Contents", [])
-        if not objects:
+        for page in paginator.paginate(Bucket=config.S3_BUCKET, Prefix=prefix):
+            objects = page.get("Contents", [])
+            if objects:
+                page_latest = max(objects, key=lambda x: x["LastModified"])
+                if latest_obj is None or page_latest["LastModified"] > latest_obj["LastModified"]:
+                    latest_obj = page_latest
+
+        if latest_obj is None:
             return False, "No S3 writes found for today"
 
-        # Get the most recent file
-        response_full = s3.list_objects_v2(
-            Bucket=config.S3_BUCKET,
-            Prefix=prefix
-        )
-        all_objects = response_full.get("Contents", [])
-        if not all_objects:
-            return False, "No S3 objects found"
-
-        latest = max(all_objects, key=lambda x: x["LastModified"])
-        age    = (datetime.now(timezone.utc) - latest["LastModified"]).total_seconds()
+        age = (datetime.now(timezone.utc) - latest_obj["LastModified"]).total_seconds()
 
         if age > MAX_S3_LAG_SECS:
             return False, f"Last S3 write was {age:.0f}s ago — pipeline may be stalled"
@@ -224,6 +217,71 @@ def send_alert(failures: dict):
     except Exception as e:
         logger.error(f"Failed to send alert email: {e}", exc_info=True)
 
+def send_recovery_email(recovered: dict):
+    """Send recovery notification when previously failed components come back online."""
+    try:
+        now   = datetime.now().strftime("%A, %B %d %Y at %I:%M %p")
+        rows  = ""
+        for name in recovered:
+            rows += f"""
+            <tr>
+                <td style="padding:10px 16px; font-weight:600;
+                           color:#28a745;">{name}</td>
+                <td style="padding:10px 16px;
+                           color:#555;">Component recovered — all checks passing</td>
+            </tr>"""
+
+        html = f"""
+        <html><body style="font-family:Arial,sans-serif; max-width:600px;
+                           margin:auto; padding:20px; color:#333;">
+            <div style="background:#28a745; color:white; padding:20px;
+                        border-radius:8px; margin-bottom:20px;">
+                <h2 style="margin:0;">Pipeline Recovery Notification</h2>
+                <p style="margin:8px 0 0; opacity:0.85;">{now}</p>
+            </div>
+            <p>The following pipeline components have recovered and are
+               passing all health checks:</p>
+            <table style="width:100%; border-collapse:collapse;
+                          border:1px solid #dee2e6; border-radius:6px;
+                          overflow:hidden; margin:16px 0;">
+                <thead>
+                    <tr style="background:#f8f9fa;">
+                        <th style="padding:10px 16px; text-align:left;
+                                   font-size:0.8rem; text-transform:uppercase;
+                                   letter-spacing:0.05em;">Component</th>
+                        <th style="padding:10px 16px; text-align:left;
+                                   font-size:0.8rem; text-transform:uppercase;
+                                   letter-spacing:0.05em;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>{rows}</tbody>
+            </table>
+            <p style="color:#666; font-size:0.85rem;">
+                No action required — the pipeline is operating normally.
+            </p>
+            <p style="color:#999; font-size:0.75rem; margin-top:24px;">
+                Sent by Smart Greenhouse Health Monitor — {config.DEVICE_ID}
+            </p>
+        </body></html>
+        """
+
+        msg             = MIMEMultipart("alternative")
+        msg["Subject"]  = f"Pipeline Recovered — {len(recovered)} component(s) back online"
+        msg["From"]     = config.EMAIL_SENDER
+        msg["To"]       = config.EMAIL_RECIPIENT
+        msg.attach(MIMEText(html, "html"))
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(config.EMAIL_SENDER, config.EMAIL_APP_PASSWORD)
+            server.sendmail(
+                config.EMAIL_SENDER,
+                config.EMAIL_RECIPIENT,
+                msg.as_string()
+            )
+        logger.info(f"Recovery email sent for: {list(recovered.keys())}")
+    except Exception as e:
+        logger.error(f"Failed to send recovery email: {e}", exc_info=True)
+
 def main():
     logger.info(
         f"Starting pipeline health monitor — "
@@ -253,11 +311,18 @@ def main():
                         last_alerts[name] = time.time()
             else:
                 logger.info("All components healthy")
-                # Reset alert state for recovered components
-                for name in list(last_alerts.keys()):
-                    if name not in failures:
+                # Check for recovered components and send recovery notification
+                recovered = {
+                    name: {"healthy": True, "message": "Component recovered — all checks passing"}
+                    for name in list(last_alerts.keys())
+                    if name not in failures
+                }
+
+                if recovered:
+                    send_recovery_email(recovered)
+                    for name in recovered:
                         del last_alerts[name]
-                        logger.info(f"[RECOVERED] {name} — alert state cleared")
+                        logger.info(f"[RECOVERED] {name} — alert state cleared, recovery email sent")
 
         except Exception as e:
             logger.error(f"Health check cycle failed: {e}", exc_info=True)
