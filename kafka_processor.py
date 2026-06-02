@@ -25,7 +25,8 @@ s3  = boto3.client("s3",  region_name=config.AWS_REGION)
 influx_client = InfluxDBClient(
     url=config.INFLUXDB_URL,
     token=config.INFLUXDB_TOKEN,
-    org=config.INFLUXDB_ORG
+    org=config.INFLUXDB_ORG,
+    timeout=10000
 )
 influx_write_api = influx_client.write_api(write_options=SYNCHRONOUS)
 
