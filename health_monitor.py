@@ -25,6 +25,7 @@ ALERT_COOLDOWN    = 1800  # don't re-alert same issue for 30 minutes
 
 # ── Track alert state to prevent spam ────────────────────────
 last_alerts = {}
+last_daily_summary = None
 
 def check_kafka() -> tuple:
     """Verify Kafka broker is reachable and topic exists."""
@@ -282,6 +283,109 @@ def send_recovery_email(recovered: dict):
     except Exception as e:
         logger.error(f"Failed to send recovery email: {e}", exc_info=True)
 
+def send_daily_summary():
+    """Send daily S3 write count summary at 11:55 PM."""
+    try:
+        s3    = boto3.client("s3", region_name=config.AWS_REGION)
+        today = datetime.now(timezone.utc).strftime("%Y/%m/%d")
+        prefix = f"{config.S3_PREFIX}/{today}/"
+
+        # Count all objects written today using paginator
+        paginator   = s3.get_paginator("list_objects_v2")
+        total_count = 0
+        for page in paginator.paginate(Bucket=config.S3_BUCKET, Prefix=prefix):
+            total_count += len(page.get("Contents", []))
+
+        expected_count = 5760  # 86400 seconds / 15 second interval
+        missing        = max(0, expected_count - total_count)
+        coverage_pct   = round((total_count / expected_count) * 100, 1)
+        status_color   = "#28a745" if missing < 100 else "#fd7e14" if missing < 500 else "#dc3545"
+        status_label   = "Healthy" if missing < 100 else "Degraded" if missing < 500 else "Critical"
+
+        date_str = datetime.now().strftime("%A, %B %d %Y")
+        now_str  = datetime.now().strftime("%I:%M %p")
+
+        html = f"""
+        <html><body style="font-family:Arial,sans-serif; max-width:600px;
+                           margin:auto; padding:20px; color:#333;">
+            <div style="background:#1b4332; color:white; padding:20px;
+                        border-radius:8px; margin-bottom:20px;">
+                <h2 style="margin:0;">Daily Pipeline Summary</h2>
+                <p style="margin:8px 0 0; opacity:0.85;">{date_str} at {now_str}</p>
+            </div>
+
+            <div style="background:#f8f9fa; border-radius:8px; padding:20px;
+                        margin-bottom:20px; text-align:center;">
+                <div style="font-size:48px; font-weight:bold;
+                            color:{status_color};">{total_count:,}</div>
+                <div style="font-size:14px; color:#666; margin-top:4px;">
+                    S3 writes today of {expected_count:,} expected
+                </div>
+                <div style="margin-top:12px;">
+                    <span style="background:{status_color}; color:white;
+                                 padding:4px 12px; border-radius:12px;
+                                 font-size:12px; font-weight:bold;">
+                        {status_label} — {coverage_pct}% coverage
+                    </span>
+                </div>
+            </div>
+
+            <table style="width:100%; border-collapse:collapse;
+                          border:1px solid #dee2e6; border-radius:6px;
+                          overflow:hidden; margin-bottom:20px;">
+                <tr style="background:#f8f9fa;">
+                    <td style="padding:12px 16px; font-weight:600;">Expected writes</td>
+                    <td style="padding:12px 16px;">{expected_count:,}</td>
+                </tr>
+                <tr>
+                    <td style="padding:12px 16px; font-weight:600;">Actual writes</td>
+                    <td style="padding:12px 16px;">{total_count:,}</td>
+                </tr>
+                <tr style="background:#f8f9fa;">
+                    <td style="padding:12px 16px; font-weight:600;">Missing writes</td>
+                    <td style="padding:12px 16px;
+                                color:{'#28a745' if missing < 100 else '#dc3545'};">
+                        {missing:,}
+                        {' (~' + str(round(missing * 15 / 60, 0)) + ' min of downtime)' if missing > 0 else ' — perfect coverage'}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:12px 16px; font-weight:600;">Coverage</td>
+                    <td style="padding:12px 16px;">{coverage_pct}%</td>
+                </tr>
+                <tr style="background:#f8f9fa;">
+                    <td style="padding:12px 16px; font-weight:600;">Device</td>
+                    <td style="padding:12px 16px;">{config.DEVICE_ID}</td>
+                </tr>
+            </table>
+
+            <p style="color:#999; font-size:0.75rem; margin-top:24px;">
+                Sent by Smart Greenhouse Health Monitor — daily summary
+            </p>
+        </body></html>
+        """
+
+        msg            = MIMEMultipart("alternative")
+        msg["Subject"] = f"Greenhouse Daily Summary — {total_count:,} writes ({coverage_pct}% coverage)"
+        msg["From"]    = config.EMAIL_SENDER
+        msg["To"]      = config.EMAIL_RECIPIENT
+        msg.attach(MIMEText(html, "html"))
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(config.EMAIL_SENDER, config.EMAIL_APP_PASSWORD)
+            server.sendmail(
+                config.EMAIL_SENDER,
+                config.EMAIL_RECIPIENT,
+                msg.as_string()
+            )
+        logger.info(
+            f"Daily summary sent — {total_count:,} writes "
+            f"({coverage_pct}% coverage, {missing:,} missing)"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to send daily summary: {e}", exc_info=True)
+
 def main():
     logger.info(
         f"Starting pipeline health monitor — "
@@ -327,6 +431,13 @@ def main():
         except Exception as e:
             logger.error(f"Health check cycle failed: {e}", exc_info=True)
 
+        # ── Daily summary at 11:55 PM ─────────────────────
+            now_local = datetime.now()
+            if (now_local.hour == 23 and now_local.minute == 55):
+                if last_daily_summary is None or last_daily_summary.date() != now_local.date():
+                    logger.info("Sending daily S3 write summary...")
+                    send_daily_summary()
+                    last_daily_summary = now_local
         logger.info(f"Next health check in {CHECK_INTERVAL}s")
         time.sleep(CHECK_INTERVAL)
 
