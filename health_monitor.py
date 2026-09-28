@@ -391,6 +391,7 @@ def main():
         f"Starting pipeline health monitor — "
         f"checking every {CHECK_INTERVAL}s"
     )
+    global last_daily_summary
 
     while True:
         try:
@@ -432,12 +433,12 @@ def main():
             logger.error(f"Health check cycle failed: {e}", exc_info=True)
 
         # ── Daily summary at 11:55 PM ─────────────────────
-            now_local = datetime.now()
-            if (now_local.hour == 23 and now_local.minute == 55):
-                if last_daily_summary is None or last_daily_summary.date() != now_local.date():
-                    logger.info("Sending daily S3 write summary...")
-                    send_daily_summary()
-                    last_daily_summary = now_local
+        now_local = datetime.now()
+        if (now_local.hour == 23 and now_local.minute >= 55):
+            if last_daily_summary is None or last_daily_summary.date() != now_local.date():
+                logger.info("Sending daily S3 write summary...")
+                send_daily_summary()
+                last_daily_summary = now_local
         logger.info(f"Next health check in {CHECK_INTERVAL}s")
         time.sleep(CHECK_INTERVAL)
 
