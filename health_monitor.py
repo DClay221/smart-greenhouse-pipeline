@@ -287,7 +287,7 @@ def send_daily_summary():
     """Send daily S3 write count summary at 11:55 PM."""
     try:
         s3    = boto3.client("s3", region_name=config.AWS_REGION)
-        today = datetime.now(timezone.utc).strftime("%Y/%m/%d")
+        today = datetime.now().strftime("%Y/%m/%d")
         prefix = f"{config.S3_PREFIX}/{today}/"
 
         # Count all objects written today using paginator
